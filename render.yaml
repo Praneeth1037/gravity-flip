@@ -1,0 +1,14 @@
+# One-click Render setup for the Gravity Duel online room server.
+services:
+  - type: web
+    name: gravity-duel
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node server.cjs
+    healthCheckPath: /api/duel/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_VERSION
+        value: "22"

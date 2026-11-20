@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07101e"><title>Gravity Flip — Find your orbit</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Crect x='4' y='4' width='42' height='42' rx='18' fill='%23ffa441'/%3E%3Crect x='10' y='14' width='30' height='22' rx='9' fill='%2307101e'/%3E%3Cpath d='M20 21v8m10-8v8' stroke='%2359edff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E"><link rel="stylesheet" href="style.css"><script defer src="engine.js"></script><script defer src="motion.js"></script><script defer src="rig.js"></script><script defer src="audio.js"></script><script defer src="game.js"></script></head>
+<body>
+<main id="game" data-state="home">
+  <canvas id="field" aria-label="Gravity Flip playfield. Tap, click, Space, or Arrow Up to reverse gravity." tabindex="0"></canvas>
+  <header class="topbar"><a class="brand" href="#" id="brand" aria-label="Gravity Flip home"><span class="brand-icon">↕</span> GRAVITY FLIP <span class="edition">/ ORBITAL RUN</span></a><div class="top-actions"><button id="sound" class="icon-button" aria-label="Turn sound off" aria-pressed="true">♪ <span>Sound on</span></button><button id="pause" class="icon-button" aria-label="Pause game" hidden>Ⅱ</button></div></header>
+  <button id="shoot" class="shoot-control" aria-label="Fire machine gun. Hold F or X, or hold this button." hidden><span class="shoot-icon">⌖</span><b>FIRE</b><span id="ammo">48 ROUNDS</span><small id="refill-distance">+32 in 150 m</small></button>
+  <div id="hud" hidden><div><span class="label">DISTANCE</span><strong><span id="distance">0</span><small> m</small></strong></div><div class="star-hud">✦ <span id="stars">0</span></div></div>
+  <section id="home" class="screen home-screen" aria-labelledby="title">
+    <div class="hero">
+      <div class="eyebrow">FAST FLIPS. LIMITLESS SKYLINES.</div>
+      <h1 id="title">GRAVITY<br><span>FLIP</span><i>✦</i></h1>
+      <p class="tagline">Ride the skyline. Chase the impossible.</p>
+      <div class="best-pill">PERSONAL BEST <strong id="home-best">0 <small>m</small></strong></div>
+      <button id="play" class="primary">Let’s fly <span class="play-icon">▶</span></button>
+      <div class="duel-row"><a class="duel-link" href="duel.html">⚔ 2-player Gravity Duel <span>NEW</span></a><form class="join-room" action="duel.html" method="get" aria-label="Join a friend's duel room"><label for="home-room">Friend’s room code</label><input id="home-room" name="room" maxlength="4" minlength="4" pattern="[A-Za-z]{4}" required placeholder="CODE" autocomplete="off" autocapitalize="characters"><input type="hidden" name="join" value="1"><button type="submit">Join</button></form></div>
+      <div class="home-controls" aria-label="How to play">
+        <div><kbd>SPACE</kbd><span><b>Jump</b><small>Flip gravity</small></span></div>
+        <div><kbd>F</kbd><span><b>Fire</b><small>Hold for machine gun</small></span></div>
+        <p>Tap to flip · Hold FIRE to shoot · P / Esc to pause</p>
+        <p class="ammo-guide">48 starting rounds. +32 every 150 m.<br>Collect ammo, piercing &amp; plasma along the way.</p>
+      </div>
+      <div class="power-preview"><span>◇ Shield</span><span>⊂ Magnet</span><span>⌖ Machine gun</span></div>
+    </div>
+    <div class="hangar">
+      <div class="hangar-heading"><span>YOUR CREW</span><span id="bank">✦ 0 lifetime stars</span></div>
+      <div id="avatars" class="avatars"></div>
+      <p id="avatar-description" class="avatar-description"></p>
+      <div class="unlock-progress"><div class="progress-label"><span id="next-unlock">Next copilot</span><span id="unlock-count">0 / 5</span></div><progress id="unlock-progress" value="0" max="5" aria-label="Next cosmetic unlock progress"></progress></div>
+      <p class="cosmetic-note">Stars unlock your crew. Every copilot flies the same.</p>
+    </div>
+  </section>
+  <section id="ready" class="screen compact" hidden aria-labelledby="ready-title"><span class="eyebrow">SYSTEMS READY</span><h2 id="ready-title">Trust the flip.</h2><p>Tap to launch. Tap again to flip.<br>Space to jump / flip. Hold F / FIRE to shoot.</p><div class="control-demo"><span>⌃<br>⌄</span><span>Land on glowing edges. Flip before gaps.<br><b>Avoid coral hazards. Don’t fall into the void.</b></span></div><div class="power-guide"><span><b>◇ Shield</b>Blocks one hit</span><span><b>⊂ Magnet</b>Draws stars · 8s</span><span><b>◷ Slow</b>More time · 6s</span></div><p class="reward-tip">Limited ammo: +32 rounds every 150 m. Grab green ammo crates, cyan piercing rounds, and orange explosive plasma.</p><button id="launch" class="primary">Launch run</button><button class="text-button" data-home>Back to home</button></section>
+  <section id="paused" class="screen compact" hidden aria-labelledby="pause-title"><span class="eyebrow">TAKE A BREATHER</span><h2 id="pause-title">In orbit.</h2><p id="pause-reason">Your run is right where you left it.</p><button id="resume" class="primary">Resume run</button><button class="text-button" data-home>Home · end run</button></section>
+  <section id="over" class="screen compact" hidden aria-labelledby="over-title"><span class="eyebrow" id="result-label">FLIGHT COMPLETE</span><h2 id="over-title">One more orbit?</h2><div class="results"><div><span>DISTANCE</span><strong id="result-distance">0 m</strong></div><div><span>BEST</span><strong id="result-best">0 m</strong></div><div><span>STARS</span><strong id="result-stars">0</strong></div></div><p id="result-bonus"></p><p id="unlock-message"></p><button id="retry" class="primary">Fly again <span>↻</span></button><button class="text-button" data-home>Back to home</button></section>
+  <div id="flight-status" hidden><span id="sector-name">DOCKING BAY</span><span class="speed-readout">PACE <b id="speed-value">100%</b></span><div id="active-powers"></div><span id="chain-status"></span></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <footer><span class="footer-hint"><kbd>SPACE</kbd> / <kbd>↑</kbd> or tap to flip</span><span class="footer-right">FIND YOUR LINE. MAKE IT COUNT.</span><span id="phase-label">FLIGHT DECK</span></footer>
+  <div id="storage-note" hidden>Progress can’t be saved in this browser session.</div>
+</main>
+</body></html>
