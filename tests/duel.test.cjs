@@ -12,7 +12,7 @@ const place=(d,p,lane,offset)=>{p.lane=p.fromLane=lane;p.shift=1;p.offset=offset
 
 test('identical seeds and inputs give identical duels',()=>{
   const a=new Duel({seed:99}),b=new Duel({seed:99});
-  const script=(d,i)=>{d.hold(0,i%240<120);d.hold(1,i%300>150);if(i%97===0)d.press(0,'up');if(i%131===0)d.press(1,'down');if(i%400===0){d.press(1,'shield');d.press(0,'power1');d.press(1,'power2');}};
+  const script=(d,i)=>{d.hold(0,i%240<120);d.hold(1,i%300>150);if(i%97===0)d.press(0,'up');if(i%131===0)d.press(1,'down');if(i%400===0){d.press(1,'shield');d.press(0,'power');d.press(1,'use0');d.press(1,'next');}};
   run(a,25,script);run(b,25,script);
   assert.deepEqual(a.snapshot(),b.snapshot());
 });
@@ -117,18 +117,27 @@ test('shield is manual, costs power, blocks and parries shots',()=>{
   run(d,2);b.power=0;d.press(1,'shield');run(d,.02);assert.equal(b.shield,0);assert.ok(types(d).includes('no-power'));
 });
 
-test('powers are chosen per pilot, cost power and have a cooldown',()=>{
-  const d=arena(11,{players:[{powers:['well','hex']},{powers:['nope','blades','blades']}]});
-  assert.deepEqual(d.players[0].powers,['well','hex']);assert.equal(d.players[1].powers[0],'blades');assert.equal(d.players[1].powers.length,2);
-  const p=d.players[1];p.power=100;d.press(1,'power1');run(d,.02);
-  assert.ok(Math.abs(p.power-(100-POWERS.blades.cost))<1);
-  d.press(1,'power1');run(d,.02);assert.equal(d.stats[1].powers,1,'cooldown blocks instant reuse');
-  run(d,2);p.power=0;d.press(1,'power1');run(d,.02);assert.ok(types(d).includes('no-power'));
+test('powers are found as orbs, carried up to three, selected and spent one at a time',()=>{
+  const d=arena();const p=d.players[0];
+  assert.deepEqual(p.inventory,[],'nobody starts with a power');
+  d.press(0,'power');run(d,.02);assert.ok(types(d).includes('no-item'));
+  for(const power of ['well','hex','blades','echo'])d.collect(p,{type:'orb',power});
+  assert.deepEqual(p.inventory,['well','hex','blades'],'carry at most three');assert.equal(p.selected,2,'the newest is selected');
+  assert.ok(p.power>S.startPower,'a fourth orb turns into power');
+  d.press(0,'next');run(d,.02);assert.equal(p.selected,0);
+  d.press(0,'use1');run(d,.02);assert.deepEqual(p.inventory,['well','blades'],'tapping a slot uses that power');assert.ok(p.hex===0);
+  d.press(0,'power');run(d,.02);assert.equal(d.stats[0].powers,1,'cooldown blocks instant reuse');
+  run(d,S.powerCooldown);d.press(0,'power');run(d,.02);assert.equal(d.stats[0].powers,2);assert.deepEqual(p.inventory,['blades']);
+});
+
+test('each pilot finds an early orb on their starting deck',()=>{
+  const d=new Duel({seed:5});while(d.beat<4)d.generateBeat();const orbs=d.pickups.filter(x=>x.type==='orb'&&!x.dropped).slice(0,2);
+  assert.deepEqual(orbs.map(o=>o.lane),[0,2]);assert.ok(orbs.every(o=>G.POWER_IDS.includes(o.power)));
 });
 
 test('Gravity Well swallows enemy bullets, drags the rival and crushes obstacles',()=>{
-  const d=arena(11,{players:[{powers:['well','blades']},{}]});const [a,b]=d.players;place(d,b,0,750);
-  a.power=100;d.press(0,'power1');run(d,1.5);
+  const d=arena();const [a,b]=d.players;place(d,b,0,750);
+  a.inventory=['well'];d.press(0,'power');run(d,1.5);
   assert.equal(d.wells.length,1);const w=d.wells[0];
   d.bullets.push({id:900,owner:1,kind:'blaster',x:d.camX+w.offset+60,y:w.y,vx:-300,vy:0,g:0,life:1,damage:5,hits:[]});
   d.hazards.push({id:901,type:'rock',zone:0,x:d.camX+w.offset+20,y:w.y,r:20,hp:15,w:0});
@@ -138,32 +147,32 @@ test('Gravity Well swallows enemy bullets, drags the rival and crushes obstacles
 });
 
 test('Time Echo repeats every shot 0.6 s later for free',()=>{
-  const d=arena(11,{players:[{powers:['echo','well']},{}]});const a=d.players[0];a.power=100;
-  d.press(0,'power1');run(d,.02);
+  const d=arena();const a=d.players[0];a.inventory=['echo'];
+  d.press(0,'power');run(d,.02);
   d.hold(0,true);run(d,.5);d.hold(0,false);const shots=d.stats[0].shots;run(d,1);
   assert.equal(types(d).filter(t=>t==='echo-shot').length,shots);assert.equal(a.ammo,S.startAmmo-shots);
 });
 
 test('Comet Roll lands on the rival’s deck, smashes spikes and hits the rival',()=>{
-  const d=arena(11,{players:[{powers:['comet','echo']},{}]});const [a,b]=d.players;place(d,b,1,500);
+  const d=arena();const [a,b]=d.players;place(d,b,1,500);a.inventory=['comet'];
   const spikes={id:77,type:'spikes',lane:1,x:d.worldX(b)+560,w:60,hp:18};spikes.shapes=G.hazardShapes(d.terrain,spikes);d.hazards.push(spikes);
-  b.hazardCd=99;a.power=100;d.press(0,'power1');run(d,.02);
+  b.hazardCd=99;d.press(0,'power');run(d,.02);
   assert.equal(d.comets[0].lane,1);
   run(d,2.5,()=>{b.hazardCd=99;});
   assert.ok(spikes.destroyed,'spikes smashed');assert.ok(b.hp<=S.maxHp-22,'rival hit');
 });
 
 test('Orbit Blades cut bullets and nearby rivals',()=>{
-  const d=arena(11,{players:[{powers:['blades','echo']},{}]});const [a,b]=d.players;place(d,b,0,a.offset+50);
-  a.power=100;d.press(0,'power1');run(d,.02);
+  const d=arena();const [a,b]=d.players;place(d,b,0,a.offset+50);
+  a.inventory=['blades'];d.press(0,'power');run(d,.02);
   d.bullets.push({id:901,owner:1,kind:'blaster',x:d.worldX(a)+48,y:a.y-9,vx:-d.speed,vy:0,g:0,life:1,damage:5,hits:[]});
   run(d,1);
   assert.ok(!d.bullets.some(x=>x.id===901));assert.ok(b.hp<S.maxHp);
 });
 
 test('Gravity Hex flings the rival to the far deck and flips their controls',()=>{
-  const d=arena(11,{players:[{powers:['hex','echo']},{}]});const [a,b]=d.players;place(d,b,0,750);
-  a.power=100;d.press(0,'power1');run(d,2);
+  const d=arena();const [a,b]=d.players;place(d,b,0,750);
+  a.inventory=['hex'];d.press(0,'power');run(d,2);
   assert.equal(b.lane,2,'flung to the ceiling');assert.ok(b.hex>0);
   run(d,.3);d.press(1,'up');run(d,.4);assert.equal(b.lane,1,'up now moves down');
 });
@@ -222,16 +231,15 @@ test('level director never blocks all three decks, and floating objects never to
 });
 
 test('snapshots are compact JSON with finite numbers',()=>{
-  const d=fight(3,{players:[{powers:['well','echo']},{powers:['comet','blades']}]});
+  const d=fight(3);
   let largest=0;
-  run(d,12,(x,i)=>{x.hold(0,true);x.hold(1,true);if(i===200){x.players[0].power=100;x.players[1].power=100;x.press(0,'power1');x.press(1,'power1');x.press(0,'power2');}if(i%30===0)largest=Math.max(largest,JSON.stringify(x.snapshot()).length);});
+  run(d,12,(x,i)=>{x.hold(0,true);x.hold(1,true);if(i===200){x.players[0].inventory=['well','echo'];x.players[1].inventory=['comet','blades'];x.press(0,'power');x.press(1,'power');x.press(1,'use0');}if(i===400)x.press(0,'power');if(i%30===0)largest=Math.max(largest,JSON.stringify(x.snapshot()).length);});
   assert.ok(largest<9000,`snapshot ${largest} bytes`);
   for(const p of JSON.parse(JSON.stringify(d.snapshot())).players)for(const k of ['x','y','hp','power','ammo','inv'])assert.ok(Number.isFinite(p[k]),k);
 });
 
-test('names and powers are sanitised',()=>{
-  const d=new Duel({players:[{name:'<b>Zed</b>!!',avatar:'nope',powers:['x','hex','hex','swap']},{}]});
+test('names and avatars are sanitised',()=>{
+  const d=new Duel({players:[{name:'<b>Zed</b>!!',avatar:'nope'},{}]});
   assert.equal(d.players[0].name,'bZedb');assert.equal(d.players[0].avatar,'orbit');assert.equal(d.players[1].name,'Player 2');
-  assert.deepEqual(d.players[0].powers,['hex','well']);
   assert.ok(!G.POWER_IDS.includes('swap'),'Swap Shift is removed');
 });

@@ -29,27 +29,23 @@
     boomerang:{label:'Boomerang',damage:12,cooldown:.7,speed:1100,life:2,spread:[0],boomerang:true,ammo:6}
   });
   const POWERS=Object.freeze({
-    well:{label:'Gravity Well',icon:'◉',cost:40,text:'Lob a singularity that drags your rival in, swallows their bullets and crushes obstacles.'},
-    echo:{label:'Time Echo',icon:'◐',cost:25,text:'For 4 s a ghost of you repeats every shot 0.6 s later, from where you were.'},
-    comet:{label:'Comet Roll',icon:'☄',cost:35,text:'Drop a comet on your rival’s deck. It rolls along the curves, faster downhill, smashing everything.'},
-    blades:{label:'Orbit Blades',icon:'✣',cost:35,text:'Three blades circle you for 5 s, cutting bullets, obstacles and anyone who gets close.'},
-    hex:{label:'Gravity Hex',icon:'✶',cost:40,text:'A curving bolt that flings your rival to the far deck and flips their up/down for 4 s.'}
+    well:{label:'Gravity Well',icon:'◉',color:'#b98cff',text:'Lob a singularity that drags your rival in, swallows their bullets and crushes obstacles.'},
+    echo:{label:'Time Echo',icon:'◐',color:'#c9b8ff',text:'For 4 s a ghost of you repeats every shot 0.6 s later, from where you were.'},
+    comet:{label:'Comet Roll',icon:'☄',color:'#ffb35c',text:'Drop a comet on your rival’s deck. It rolls along the curves, faster downhill, smashing everything.'},
+    blades:{label:'Orbit Blades',icon:'✣',color:'#e6f6ff',text:'Three blades circle you for 5 s, cutting bullets, obstacles and anyone who gets close.'},
+    hex:{label:'Gravity Hex',icon:'✶',color:'#e3a4ff',text:'A curving bolt that flings your rival to the far deck and flips their up/down for 4 s.'}
   });
   const POWER_IDS=Object.freeze(Object.keys(POWERS));
-  const DEFAULT_POWERS=Object.freeze([['well','blades'],['comet','echo']]);
+  const MAX_POWERS=3;
   const HAZARD_DAMAGE=Object.freeze({spikes:16,crate:12,laser:14});
-  const PICKUPS=Object.freeze(['ammo','health','energy','scatter','burst','rail','rocket','boomerang','ring']);
+  const PICKUPS=Object.freeze(['ammo','health','energy','scatter','burst','rail','rocket','boomerang','ring','orb']);
   const AVATAR_IDS=Object.freeze(['orbit','wisp','pebble','astro']);
-  const ACTIONS=Object.freeze(['up','down','dash','shield','power1','power2']);
+  // power: use the selected power · next: select the next one · use0-2: use a specific slot (tapped on screen).
+  const ACTIONS=Object.freeze(['up','down','dash','shield','power','next','use0','use1','use2']);
   const DESTRUCTIBLE=new Set(['spikes','crate','rock','gate']);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const smooth=t=>t*t*(3-2*t);
   const cleanName=name=>typeof name==='string'?name.replace(/[^\p{L}\p{N} _.-]/gu,'').trim().slice(0,12):'';
-  function cleanPowers(list,fallback){
-    const picked=Array.isArray(list)?[...new Set(list.filter(id=>POWER_IDS.includes(id)))].slice(0,2):[];
-    for(const id of fallback)if(picked.length<2&&!picked.includes(id))picked.push(id);
-    return picked;
-  }
   function circleRect(x,y,r,rect){return Math.hypot(Math.max(rect.x-x,0,x-rect.x-rect.w),Math.max(rect.y-y,0,y-rect.y-rect.h))<r;}
   function segmentDistance(px,py,ax,ay,bx,by){
     const t=clamp(((px-ax)*(bx-ax)+(py-ay)*(by-ay))/(((bx-ax)**2+(by-ay)**2)||1),0,1);
@@ -109,8 +105,8 @@
       this.events=[];this.nextId=1;this.time=0;this.firstArena=Math.floor(this.random()*ARENAS.length);
       this.restartMatch();
     }
-    rosterEntry(i,data={}){return {name:cleanName(data?.name)||`Player ${i+1}`,avatar:AVATAR_IDS.includes(data?.avatar)?data.avatar:(i?'wisp':'orbit'),powers:cleanPowers(data?.powers,DEFAULT_POWERS[i])};}
-    setRoster(i,data){this.roster[i]=this.rosterEntry(i,data);Object.assign(this.players[i],{...this.roster[i],powers:[...this.roster[i].powers]});}
+    rosterEntry(i,data={}){return {name:cleanName(data?.name)||`Player ${i+1}`,avatar:AVATAR_IDS.includes(data?.avatar)?data.avatar:(i?'wisp':'orbit')};}
+    setRoster(i,data){this.roster[i]=this.rosterEntry(i,data);Object.assign(this.players[i],this.roster[i]);}
     random(){this.seed^=this.seed<<13;this.seed^=this.seed>>>17;this.seed^=this.seed<<5;return (this.seed>>>0)/4294967296;}
     restartMatch(){
       this.round=0;this.wins=[0,0];this.stats=[blankStats(),blankStats()];this.matchWinner=null;
@@ -128,9 +124,9 @@
     }
     makePlayer(i){
       const lane=i?2:0,offset=SETTINGS.homeOffsets[i],y=laneY(this.terrain,lane,offset);
-      return {id:i,...this.roster[i],powers:[...this.roster[i].powers],lane,fromLane:lane,fromY:y,shift:1,shiftDur:SETTINGS.laneChange,forced:false,y,vy:0,falling:false,
+      return {id:i,...this.roster[i],inventory:[],selected:0,lane,fromLane:lane,fromY:y,shift:1,shiftDur:SETTINGS.laneChange,forced:false,y,vy:0,falling:false,
         offset,vx:0,hp:SETTINGS.maxHp,power:SETTINGS.startPower,ammo:SETTINGS.startAmmo,weapon:'blaster',special:0,burstIndex:0,
-        cooldown:0,shield:0,dashCd:0,invuln:0,hazardCd:0,flash:0,dryCd:0,powerCd:[0,0],echo:0,trail:[],echoShots:[],blades:0,bladeAngle:0,bladeHitCd:0,hex:0,wellTick:0,
+        cooldown:0,shield:0,dashCd:0,invuln:0,hazardCd:0,flash:0,dryCd:0,powerCd:0,echo:0,trail:[],echoShots:[],blades:0,bladeAngle:0,bladeHitCd:0,hex:0,wellTick:0,
         fire:false,queue:[],nextAmmoAt:SETTINGS.firstRefillMeters,aimBack:false,alive:true};
     }
     // ---- input -------------------------------------------------------------
@@ -182,8 +178,7 @@
       this.fill();
     }
     stepPlayer(p,dt,fighting){
-      for(const key of ['cooldown','dashCd','invuln','hazardCd','shield','flash','dryCd','echo','blades','bladeHitCd','hex'])p[key]=Math.max(0,p[key]-dt);
-      p.powerCd=p.powerCd.map(v=>Math.max(0,v-dt));
+      for(const key of ['cooldown','dashCd','invuln','hazardCd','shield','flash','dryCd','echo','blades','bladeHitCd','hex','powerCd'])p[key]=Math.max(0,p[key]-dt);
       if(!p.alive)return;
       if(fighting)p.power=Math.min(SETTINGS.maxPower,p.power+SETTINGS.powerPerSecond*dt);
       const pending=[];
@@ -198,7 +193,9 @@
         }else if(!fighting)continue;
         else if(action==='dash')this.dash(p);
         else if(action==='shield')this.raiseShield(p);
-        else if(action==='power1'||action==='power2')this.usePower(p,action==='power1'?0:1);
+        else if(action==='power')this.usePower(p,p.selected);
+        else if(action==='next'){if(p.inventory.length>1){p.selected=(p.selected+1)%p.inventory.length;this.events.push({type:'select',p:p.id,power:p.inventory[p.selected]});}}
+        else if(action.startsWith('use'))this.usePower(p,Number(action.slice(3)));
       }
       p.queue=pending;
       // Horizontal first, so the vertical snap below uses this step's final position on the curve.
@@ -295,11 +292,13 @@
     }
     // ---- powers --------------------------------------------------------------
     usePower(p,slot){
-      const id=p.powers[slot],power=POWERS[id];
-      if(!power||p.powerCd[slot]>0)return false;
-      if(p.power<power.cost){this.events.push({type:'no-power',p:p.id,action:id,cost:power.cost});return false;}
+      // Powers are found in the arena, carried (up to three) and spent one charge at a time.
+      const id=p.inventory[slot];
+      if(!POWERS[id]){this.events.push({type:'no-item',p:p.id});return false;}
+      if(p.powerCd>0)return false;
       const o=this.players[1-p.id];
-      p.power-=power.cost;p.powerCd[slot]=SETTINGS.powerCooldown;this.stats[p.id].powers++;
+      p.inventory.splice(slot,1);p.selected=Math.min(p.selected,Math.max(0,p.inventory.length-1));
+      p.powerCd=SETTINGS.powerCooldown;this.stats[p.id].powers++;
       const from=this.gunPoint(p);
       if(id==='well'){
         const g=SETTINGS.bulletGravity*.8*this.gravityOf(p);
@@ -421,10 +420,10 @@
       h.destroyed=true;const c=this.hazardCenter(h),size=h.type==='rock'?h.r*2:h.type==='gate'?h.len:h.w;
       this.events.push({type:'destroy',kind:h.type,x:c.x,y:c.y,w:size,h:h.type==='rock'?size:40,by});
       // Crates and asteroids are supply caches: breaking one open can drop something useful.
-      if((h.type==='crate'||h.type==='rock')&&this.random()<.5){
-        const type=['ammo','health','energy','ammo'][Math.floor(this.random()*4)];
+      if((h.type==='crate'||h.type==='rock')&&this.random()<.55){
+        const type=['ammo','health','energy','orb','orb'][Math.floor(this.random()*5)];
         const lane=h.type==='crate'?h.lane:h.zone===0?0:1;
-        this.pickups.push({id:this.nextId++,type,lane,x:c.x,y:laneY(this.terrain,lane,c.x),dropped:true});
+        this.pickups.push(this.makePickup(type,lane,c.x,{dropped:true}));
       }
     }
     detonate(b,directId=null){
@@ -534,7 +533,12 @@
       else if(s.type==='health'){amount=Math.min(SETTINGS.healthPack,SETTINGS.maxHp-p.hp);p.hp+=amount;}
       else if(s.type==='energy'||s.type==='ring'){amount=Math.min(s.type==='ring'?SETTINGS.ringPower:SETTINGS.energyCell,SETTINGS.maxPower-p.power);p.power+=amount;}
       else if(WEAPONS[s.type]){p.weapon=s.type;p.special=WEAPONS[s.type].ammo;p.burstIndex=0;p.cooldown=0;amount=p.special;}
-      this.events.push({type:'pickup',p:p.id,item:s.type,amount,x:s.x,y:s.y});
+      else if(s.type==='orb'){
+        // A fourth orb with full hands becomes power instead of being wasted.
+        if(p.inventory.length<MAX_POWERS){p.inventory.push(s.power);p.selected=p.inventory.length-1;}
+        else{amount=Math.min(15,SETTINGS.maxPower-p.power);p.power+=amount;this.events.push({type:'pickup',p:p.id,item:'energy',amount,x:s.x,y:s.y,overflow:true});return;}
+      }
+      this.events.push({type:'pickup',p:p.id,item:s.type,power:s.power,amount,x:s.x,y:s.y});
     }
     endRound(winner){
       this.phase='roundover';this.phaseTimer=SETTINGS.roundOver;this.winner=winner;this.bullets=[];this.wells=[];this.comets=[];
@@ -546,10 +550,15 @@
     fill(){while(this.nextX<this.camX+SETTINGS.width+1400)this.generateBeat();}
     pickPickup(intensity){
       const low=this.players?.some(p=>p.hp<45);
-      const table=[['ammo',3],['energy',2.2],['health',low?3:1.1],['scatter',.6],['burst',.6],['rail',.45+intensity*.4],['rocket',.3+intensity*.5],['boomerang',.6]];
+      const table=[['ammo',3],['energy',1.6],['orb',2.6],['health',low?3:1.1],['scatter',.6],['burst',.6],['rail',.45+intensity*.4],['rocket',.3+intensity*.5],['boomerang',.6]];
       let pick=this.random()*table.reduce((s,[,w])=>s+w,0);
       for(const [type,w] of table){pick-=w;if(pick<=0)return type;}
       return 'ammo';
+    }
+    makePickup(type,lane,x,extra={}){
+      const s={id:this.nextId++,type,lane,x,y:laneY(this.terrain,lane,x),...extra};
+      if(type==='orb')s.power=POWER_IDS[Math.floor(this.random()*POWER_IDS.length)];
+      return s;
     }
     // A floating object placed in open air between two decks, sized so it never touches a running pilot.
     zoneObject(type,zone,x,extra={}){
@@ -608,7 +617,9 @@
         // Asteroid field: cover in both gaps, staggered so there is always a way through.
         width=420;for(let k=0;k<4;k++)push(this.zoneObject('rock',k%2,x+k*130,{spin:Math.round(r()*628)/100}));
       }
-      if(index>=1&&r()<.8){const l=lane(),px=x-120;this.pickups.push({id:id(),type:this.pickPickup(intensity),lane:l,x:px,y:laneY(t,l,px)});}
+      // The first two beats hand each pilot an early power orb on their starting deck; after that it's a race.
+      if(index===1||index===2)this.pickups.push(this.makePickup('orb',index===1?0:2,x-120));
+      else if(index>=3&&r()<.8)this.pickups.push(this.makePickup(this.pickPickup(intensity),lane(),x-120));
       this.nextX=x+width+Math.round(330-120*intensity+r()*120);
     }
     // ---- output ------------------------------------------------------------
@@ -625,7 +636,7 @@
             shifting:p.shift<1,falling:p.falling,inv:Math.round(this.inversion(p)*100)/100,hp:Math.ceil(p.hp),power:Math.floor(p.power),ammo:p.ammo,
             weapon:p.weapon,special:p.special,shield:r1(p.shield),invuln:r1(p.invuln),flash:r1(p.flash),alive:p.alive,
             aimBack:p.aimBack,firing:p.fire,nextAmmoAt:p.nextAmmoAt,meters:Math.floor(this.worldX(p)*SETTINGS.metersPerUnit),
-            powers:[...p.powers],powerCd:p.powerCd.map(r1),echo:r1(p.echo),
+            inventory:[...p.inventory],selected:p.selected,powerCd:r1(p.powerCd),echo:r1(p.echo),
             ghost:ghost&&{x:r1(this.camX+ghost.offset),y:r1(ghost.y),inv:ghost.inv,aimBack:ghost.aimBack},
             blades:r1(p.blades),blade:Math.round(p.bladeAngle*100)/100,hex:r1(p.hex)};
         }),
@@ -634,7 +645,7 @@
           r:h.r!==undefined?r1(h.r):undefined,len:h.len!==undefined?r1(h.len):undefined,hp:Math.ceil(h.hp),spin:h.spin,
           angle:h.type==='gate'?Math.round((h.phase+h.rate*this.roundTime)*100)/100:undefined,state:h.type==='laser'?this.laserState(h):undefined})),
         gaps:this.gaps.filter(visible).map(g=>({...g})),
-        pickups:this.pickups.filter(s=>!s.taken&&visible(s)).map(s=>({id:s.id,type:s.type,x:r1(s.x),y:r1(s.y)})),
+        pickups:this.pickups.filter(s=>!s.taken&&visible(s)).map(s=>({id:s.id,type:s.type,power:s.power,x:r1(s.x),y:r1(s.y)})),
         wells:this.wells.map(w=>({id:w.id,owner:w.owner,x:r1(this.camX+w.offset),y:r1(w.y),life:r1(w.life),r:w.r})),
         comets:this.comets.map(c=>({id:c.id,owner:c.owner,lane:c.lane,x:r1(c.x),y:r1(this.cometY(c)),warn:r1(c.warn)})),
         stats:this.stats.map(s=>({...s}))
@@ -642,7 +653,7 @@
     }
     drainEvents(){return this.events.splice(0);}
   }
-  const api={SETTINGS,ARENAS,WEAPONS,POWERS,POWER_IDS,DEFAULT_POWERS,PICKUPS,AVATAR_IDS,ACTIONS,HAZARD_DAMAGE,Duel,
-    terrainAt,surfaceY,laneY,zoneSpan,hazardShapes,gateEnds,hazardTouches,ballisticAngle,circleRect,cleanName,cleanPowers};
+  const api={SETTINGS,ARENAS,WEAPONS,POWERS,POWER_IDS,MAX_POWERS,PICKUPS,AVATAR_IDS,ACTIONS,HAZARD_DAMAGE,Duel,
+    terrainAt,surfaceY,laneY,zoneSpan,hazardShapes,gateEnds,hazardTouches,ballisticAngle,circleRect,cleanName};
   if(typeof module!=='undefined')module.exports=api;else root.GravityDuel=api;
 })(typeof window!=='undefined'?window:globalThis);

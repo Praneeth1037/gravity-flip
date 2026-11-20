@@ -1,11 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07101e">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#07101e">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Gravity Duel</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Crect x='4' y='4' width='42' height='42' rx='18' fill='%2359edff'/%3E%3Cpath d='M14 34 34 14M16 14l18 20' stroke='%2307101e' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="duel.css">
-<script defer src="engine.js"></script><script defer src="motion.js"></script><script defer src="rig.js"></script><script defer src="audio.js"></script><script defer src="duel-config.js"></script><script defer src="duel-engine.js"></script><script defer src="duel.js"></script>
+<script defer src="engine.js"></script><script defer src="motion.js"></script><script defer src="rig.js"></script><script defer src="duel-audio.js"></script><script defer src="duel-config.js"></script><script defer src="duel-engine.js"></script><script defer src="duel.js"></script>
 </head>
 <body>
 <main id="duel" data-state="menu">
@@ -13,68 +14,71 @@
 
   <header class="topbar">
     <a class="brand" href="index.html" aria-label="Back to Gravity Flip home"><span class="brand-icon">⚔</span> GRAVITY <span>DUEL</span></a>
-    <div class="top-actions"><button id="sound" class="chip" aria-pressed="true">♪ Sound on</button><button id="pause" class="chip" hidden aria-label="Pause">Ⅱ</button></div>
+    <div class="top-actions">
+      <button id="music" class="chip" aria-pressed="true" aria-label="Music on">♫ <span>Music</span></button>
+      <button id="sound" class="chip" aria-pressed="true" aria-label="Sound effects on">♪ <span>Effects</span></button>
+      <button id="pause" class="chip" hidden aria-label="Pause">Ⅱ</button>
+    </div>
   </header>
 
   <div id="hud" hidden>
     <section class="pcard p1" id="card-0" aria-label="Player 1 status">
       <div class="pname"><span class="tag">P1</span><b class="name">Player 1</b><span class="wins"></span></div>
       <div class="bar hp" title="Health"><i></i><span>100</span></div>
-      <div class="bar power" title="Power: shield costs 35, dash 20"><i></i><em class="mark" style="left:35%"></em><span>40</span></div>
+      <div class="bar power" title="Power for shield (35) and dash (20)"><i></i><em class="mark" style="left:35%"></em></div>
       <div class="loadout"><b class="weapon">BLASTER</b><span class="ammo">30</span><span class="refill"></span></div>
-      <div class="slots"><span class="slot" data-slot="0"><kbd>E</kbd><i></i><b></b></span><span class="slot" data-slot="1"><kbd>R</kbd><i></i><b></b></span><span class="status"></span></div>
+      <div class="slots"><span class="keys"><kbd>E</kbd> use · <kbd>R</kbd> switch</span><span class="slot" data-slot="0"></span><span class="slot" data-slot="1"></span><span class="slot" data-slot="2"></span><span class="status"></span></div>
     </section>
     <section class="center"><span id="round-label">ROUND 1</span><strong id="clock">1:30</strong><span id="arena-name">ARENA</span></section>
     <section class="pcard p2" id="card-1" aria-label="Player 2 status">
       <div class="pname"><span class="wins"></span><b class="name">Player 2</b><span class="tag">P2</span></div>
       <div class="bar hp"><i></i><span>100</span></div>
-      <div class="bar power"><i></i><em class="mark" style="left:35%"></em><span>40</span></div>
+      <div class="bar power"><i></i><em class="mark" style="left:35%"></em></div>
       <div class="loadout"><span class="refill"></span><span class="ammo">30</span><b class="weapon">BLASTER</b></div>
-      <div class="slots"><span class="status"></span><span class="slot" data-slot="1"><b></b><i></i><kbd>U</kbd></span><span class="slot" data-slot="0"><b></b><i></i><kbd>I</kbd></span></div>
+      <div class="slots"><span class="status"></span><span class="slot" data-slot="0"></span><span class="slot" data-slot="1"></span><span class="slot" data-slot="2"></span><span class="keys"><kbd>I</kbd> use · <kbd>U</kbd> switch</span></div>
     </section>
   </div>
   <div id="banner" aria-live="polite"></div>
   <div id="net-status" hidden></div>
-  <div id="rotate-hint" aria-hidden="true">↻ Turn your phone sideways for the full arena</div>
+  <div id="flash" aria-hidden="true"></div>
+  <div id="rotate" hidden><div><span class="phone" aria-hidden="true">📱</span><b>Turn your phone sideways</b><p>Gravity Duel plays in landscape.</p></div></div>
 
   <section id="menu" class="screen" aria-labelledby="title">
     <div class="intro">
       <span class="eyebrow">TWO PILOTS · CURVED DECKS · BENT BULLETS</span>
       <h1 id="title">GRAVITY<br><span>DUEL</span></h1>
-      <p class="lede">Race a curving skyline, bend shots around asteroids and hit your friend with gravity itself. Best of three rounds, and each round is a new arena.</p>
+      <p class="lede">Race a curving skyline, bend shots around asteroids, grab gravity powers on the run and use them on your friend. Best of three rounds, and each round is a new arena.</p>
       <ul class="rules">
         <li><b>Bullets fall in your gravity.</b> From the floor your shots arc down, and from the ceiling they arc up. The arc is aimed for you, so <em>where you stand</em> is your aim.</li>
-        <li><b>Three curved decks.</b> Floor, bridge and ceiling. Running downhill speeds you up. Asteroids and spinning gates float between decks as cover, and they bounce you back if you switch decks into them.</li>
+        <li><b>Three curved decks.</b> Running downhill speeds you up. Asteroids and gates float between decks as cover, and they bounce you back if you switch decks into them.</li>
         <li><b>Limited ammo.</b> 30 rounds. Every 120 m you run earns +8. Crates and asteroids break open into supplies.</li>
-        <li><b>Power.</b> Charges as you run. Fly through gold rings for +20. <kbd>D</kbd>/<kbd>K</kbd> shield (35) parries bullets back at the shooter.</li>
-        <li><b>Pick 2 gravity powers</b> per pilot. Most of them hurt your rival <em>and</em> wreck obstacles.</li>
+        <li><b>Shield.</b> Power charges as you run. <kbd>D</kbd>/<kbd>K</kbd> spends 35 on a shield that parries bullets back.</li>
       </ul>
+      <h3 class="legend-title">Power orbs <small>Grab them in the arena · carry 3 · tap to use</small></h3>
+      <ul class="power-legend" id="power-legend"></ul>
     </div>
     <div class="setup">
       <div class="players">
-        <div class="pilot p1"><span class="tag">P1</span><canvas width="240" height="240" id="portrait-0" aria-hidden="true"></canvas><input id="name-0" maxlength="12" aria-label="Player 1 name" placeholder="Player 1"><button class="chip" data-avatar="0">Change pilot ↻</button>
-          <div class="loadout-pick" role="group" aria-label="Player 1 powers, pick two" data-player="0"></div><p class="power-text" id="power-text-0"></p></div>
-        <div class="pilot p2"><span class="tag">P2</span><canvas width="240" height="240" id="portrait-1" aria-hidden="true"></canvas><input id="name-1" maxlength="12" aria-label="Player 2 name" placeholder="Player 2"><button class="chip" data-avatar="1">Change pilot ↻</button>
-          <div class="loadout-pick" role="group" aria-label="Player 2 powers, pick two" data-player="1"></div><p class="power-text" id="power-text-1"></p></div>
+        <div class="pilot p1"><span class="tag">P1</span><canvas width="240" height="240" id="portrait-0" aria-hidden="true"></canvas><input id="name-0" maxlength="12" aria-label="Player 1 name" placeholder="Player 1"><button class="chip" data-avatar="0">Change pilot ↻</button></div>
+        <div class="pilot p2"><span class="tag">P2</span><canvas width="240" height="240" id="portrait-1" aria-hidden="true"></canvas><input id="name-1" maxlength="12" aria-label="Player 2 name" placeholder="Player 2"><button class="chip" data-avatar="1">Change pilot ↻</button></div>
       </div>
       <button id="local" class="primary">Same screen duel <span>▶</span></button>
       <div class="online">
-        <span class="eyebrow">PLAY WITH A FRIEND ON ANOTHER DEVICE</span>
+        <span class="eyebrow">PLAY WITH A FRIEND · EACH ON YOUR OWN PHONE OR COMPUTER</span>
         <div class="online-grid">
           <div><b>Create a room</b><p>You play as P1 and get a 4-letter code to share.</p><button id="host" class="secondary">Host online room</button></div>
-          <div><b>Join with a code</b><p>Your friend shared a code? You play as P2.</p><div class="online-row"><input id="join-code" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off"><button id="join" class="secondary">Join</button></div></div>
+          <div><b>Join with a code</b><p>Your friend shared a code? You play as P2.</p><div class="online-row"><input id="join-code" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off" autocapitalize="characters"><button id="join" class="secondary">Join</button></div></div>
         </div>
-        <p id="online-note" class="note">Both devices must reach this server (run <code>npm run duel</code>). Each player sets up their own pilot and powers.</p>
+        <p id="online-note" class="note">Checking for the online room server…</p>
       </div>
       <table class="controls" aria-label="Controls">
-        <thead><tr><th></th><th>P1</th><th>P2</th></tr></thead>
+        <thead><tr><th></th><th>P1</th><th>P2</th><th>Phone</th></tr></thead>
         <tbody>
-          <tr><td>Up a deck</td><td><kbd>W</kbd></td><td><kbd>O</kbd> / <kbd>↑</kbd></td></tr>
-          <tr><td>Down a deck</td><td><kbd>S</kbd></td><td><kbd>L</kbd> / <kbd>↓</kbd></td></tr>
-          <tr><td>Fire (hold)</td><td><kbd>F</kbd></td><td><kbd>J</kbd></td></tr>
-          <tr><td>Shield</td><td><kbd>D</kbd></td><td><kbd>K</kbd></td></tr>
-          <tr><td>Dash forward</td><td><kbd>A</kbd></td><td><kbd>;</kbd></td></tr>
-          <tr><td>Power 1 / Power 2</td><td><kbd>E</kbd> <kbd>R</kbd></td><td><kbd>I</kbd> <kbd>U</kbd></td></tr>
+          <tr><td>Up / down a deck</td><td><kbd>W</kbd> <kbd>S</kbd></td><td><kbd>O</kbd> <kbd>L</kbd></td><td>▲ ▼ or swipe</td></tr>
+          <tr><td>Fire (hold)</td><td><kbd>F</kbd></td><td><kbd>J</kbd></td><td>FIRE</td></tr>
+          <tr><td>Shield</td><td><kbd>D</kbd></td><td><kbd>K</kbd></td><td>◇</td></tr>
+          <tr><td>Dash forward</td><td><kbd>A</kbd></td><td><kbd>;</kbd></td><td>»</td></tr>
+          <tr><td>Use / switch power</td><td><kbd>E</kbd> <kbd>R</kbd></td><td><kbd>I</kbd> <kbd>U</kbd></td><td>tap the power</td></tr>
         </tbody>
       </table>
     </div>
@@ -85,7 +89,7 @@
     <h2 id="lobby-title">Room <span id="room-code">----</span></h2>
     <p id="lobby-status">Waiting for your friend to join…</p>
     <div class="share"><input id="share-link" readonly aria-label="Invite link"><button id="copy" class="chip">Copy link</button></div>
-    <p class="note">Send this link to your friend. On the same Wi-Fi, start the server with <code>npm run duel</code> so their device can reach it.</p>
+    <p class="note">Your friend can open this link, or type the code on the Gravity Flip home screen.</p>
     <button class="text-button" data-menu>Leave room</button>
   </section>
 
@@ -101,8 +105,20 @@
   </section>
 
   <div id="touch" hidden>
-    <div class="pad" data-player="0"><button data-act="up" aria-label="Up a deck">▲</button><button data-act="down" aria-label="Down a deck">▼</button><button data-act="dash" aria-label="Dash">»</button><button data-act="shield" aria-label="Shield">◇</button><button data-act="power1" class="pw" aria-label="Power 1"></button><button data-act="power2" class="pw" aria-label="Power 2"></button><button data-act="fire" class="fire">FIRE</button></div>
-    <div class="pad" data-player="1"><button data-act="fire" class="fire">FIRE</button><button data-act="power2" class="pw" aria-label="Power 2"></button><button data-act="power1" class="pw" aria-label="Power 1"></button><button data-act="shield" aria-label="Shield">◇</button><button data-act="dash" aria-label="Dash">»</button><button data-act="down" aria-label="Down a deck">▼</button><button data-act="up" aria-label="Up a deck">▲</button></div>
+    <div class="pad" data-player="0">
+      <div class="cluster move"><button data-act="up" aria-label="Up a deck">▲</button><button data-act="down" aria-label="Down a deck">▼</button></div>
+      <div class="cluster act">
+        <div class="tray"><button data-act="use0" class="pw" aria-label="Power slot 1"></button><button data-act="use1" class="pw" aria-label="Power slot 2"></button><button data-act="use2" class="pw" aria-label="Power slot 3"></button></div>
+        <div class="row"><button data-act="dash" aria-label="Dash">»<small>DASH</small></button><button data-act="shield" aria-label="Shield">◇<small>SHIELD</small></button><button data-act="fire" class="fire" aria-label="Fire, hold">FIRE</button></div>
+      </div>
+    </div>
+    <div class="pad" data-player="1">
+      <div class="cluster act">
+        <div class="tray"><button data-act="use0" class="pw" aria-label="Power slot 1"></button><button data-act="use1" class="pw" aria-label="Power slot 2"></button><button data-act="use2" class="pw" aria-label="Power slot 3"></button></div>
+        <div class="row"><button data-act="fire" class="fire" aria-label="Fire, hold">FIRE</button><button data-act="shield" aria-label="Shield">◇<small>SHIELD</small></button><button data-act="dash" aria-label="Dash">»<small>DASH</small></button></div>
+      </div>
+      <div class="cluster move"><button data-act="up" aria-label="Up a deck">▲</button><button data-act="down" aria-label="Down a deck">▼</button></div>
+    </div>
   </div>
 </main>
 </body>

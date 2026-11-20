@@ -22,32 +22,36 @@ Open **duel.html**, or select **⚔ 2-player Gravity Duel** under *Let’s fly* 
 - **Same screen:** both players share one keyboard, or one tablet with two touch pads.
 - **Two devices:** run `npm run duel`, which binds the server to your network and prints a Wi-Fi address. One player chooses **Host online room** and shares the 4-letter code. The friend types that code into the **room-code box on the home screen** (or the duel menu) and joins straight away as P2, using their saved pilot and powers. The server runs the match; both browsers send input and draw what it sends back. If someone disconnects, the duel pauses until they return. For play over the internet rather than shared Wi-Fi, host the server somewhere both players can reach.
 
-| Action | P1 | P2 |
-| --- | --- | --- |
-| Up / down a deck | W / S | O / L (or ↑ / ↓) |
-| Fire (hold) | F | J |
-| Shield | D | K |
-| Dash forward | A | ; |
-| Power 1 / Power 2 | E / R | I / U |
+| Action | P1 | P2 | Phone |
+| --- | --- | --- | --- |
+| Up / down a deck | W / S | O / L (or ↑ / ↓) | ▲ ▼ buttons, or swipe up/down on the arena |
+| Fire (hold) | F | J | hold FIRE |
+| Shield | D | K | ◇ |
+| Dash forward | A | ; | » |
+| Use / switch power | E / R | I / U | tap the power in your tray |
+
+**Phones:** the duel is played in landscape. On a phone it asks for fullscreen landscape where the browser allows it, and in portrait it shows a "turn your phone sideways" screen. When each player uses their own phone (online), each gets a one-player layout: deck buttons under the left thumb, and FIRE, SHIELD, DASH and the power tray under the right. Two players sharing one phone or tablet each get a compact set on their side of the screen. The scoreboard shrinks to a slim strip on short screens so the arena keeps its size.
 
 **What makes it different**
 
 - **Bullets fall in your own gravity.** Shots from the floor or bridge arc downward, and shots from the ceiling arc upward. Auto-aim works out the arc for you, so where you stand decides your angle. The bridge, asteroids and gates block shots, except the Rail, which fires straight through cover.
 - **Curved arenas.** The decks follow curves: *Tidal Arcs* (waves), *Crater Bowls* (bowls with sharp rims) and *Helix Spine* (the bridge twists against the floor and ceiling). Each round uses a different arena and seed. Running downhill in your own gravity pushes you forward, and running uphill holds you back.
 - **Obstacles between the decks.** Asteroids and spinning gates float in the open air between decks. They never touch a pilot who is running on a deck, but switching decks into one costs 10 HP and bounces you back. Gold rings in the same spaces give +20 power to anyone who flies through. Shooting crates and asteroids breaks them open, and they can drop supplies.
-- **Choose 2 of 5 gravity powers** before the match, on each pilot card. Each power costs power and has a short cooldown:
+- **Gravity powers are found, not chosen.** Glowing power orbs appear on the decks, and crates and asteroids can drop them. Each pilot gets one early orb on their starting deck; after that it's a race. You carry up to 3. The newest is selected, R/U switches between them, E/I uses the selected one, and on a phone you tap the one you want. Each orb is used once, with a 1.2 s cooldown between powers. A fourth orb with a full tray becomes +15 power instead.
 
-| Power | Cost | Effect |
-| --- | --- | --- |
-| ◉ Gravity Well | 40 | Lob a singularity. For 3 s it pulls in your rival, swallows their bullets and crushes nearby obstacles and comets. |
-| ◐ Time Echo | 25 | For 4 s, a ghost of you repeats every shot 0.6 s later from where you were. Echo shots cost no ammo. |
-| ☄ Comet Roll | 35 | Drop a comet onto your rival's deck ahead of them. It rolls along the curve, speeds up downhill and smashes spikes and crates on the way. Hit for 22, or shoot it down. |
-| ✣ Orbit Blades | 35 | For 5 s, three blades circle you, cutting bullets, obstacles and any rival who gets close. |
-| ✶ Gravity Hex | 40 | A curving bolt that flings your rival to the far deck and swaps their up/down controls for 4 s. |
+| Power | Effect |
+| --- | --- |
+| ◉ Gravity Well | Lob a singularity. For 3 s it pulls in your rival, swallows their bullets and crushes nearby obstacles and comets. |
+| ◐ Time Echo | For 4 s, a ghost of you repeats every shot 0.6 s later from where you were. Echo shots cost no ammo. |
+| ☄ Comet Roll | Drop a comet onto your rival's deck ahead of them. It rolls along the curve, speeds up downhill and smashes spikes and crates on the way. Hit for 22, or shoot it down. |
+| ✣ Orbit Blades | For 5 s, three blades circle you, cutting bullets, obstacles and any rival who gets close. |
+| ✶ Gravity Hex | A curving bolt that flings your rival to the far deck and swaps their up/down controls for 4 s. |
+
+**Sound and effects:** `duel-audio.js` generates everything in the browser: separate music and effects channels (toggle each with ♫ / ♪), each pilot's sounds panned to their side, a distinct sound for every gun, power, pickup, hazard, bounce and landing, a low-health heartbeat, and a soundtrack whose tempo rises when the fight starts and again in overtime. On screen: screen shake on heavy hits, trails that show each shot's curve, trails when changing decks, landing dust, power bursts, a KO flash and a red pulse at the edge for a pilot on low health. Reduced-motion settings turn off shake and decorative motion.
 
 **Core rules:** 100 HP per round. Spikes, crates, lasers, asteroids, falling into a void (20) and dropping off the left edge (15) all cost HP, and green ✚ pickups heal 25. You start with 30 blaster rounds; every 120 m you run gives +8 rounds and +10 power, and ammo crates give +15. Power refills at 4 per second while you run. The D/K shield costs 35, lasts 1.6 s, blocks everything and bounces bullets back at the shooter. It never activates on its own. Gun pickups: Scatter, Burst, Rail, homing Rocket and the returning Boomerang. After 90 s, overtime drains both pilots so every round ends.
 
-The arena is a fixed 1200 × 600 logical field, identical on every screen and both online devices. Tuning lives in `SETTINGS`, `ARENAS`, `WEAPONS` and `POWERS` at the top of **duel-engine.js**. `server.cjs` keeps up to 40 rooms. Each room steps its own `Duel` at 120 Hz and sends about 30 updates per second (around 2–3 KB each) over Server-Sent Events. Clients send cumulative press counters, so a delayed or repeated request never replays a move. Each seat is protected by a random token, request bodies are size-limited, and idle rooms close after 60 s. The server only serves game files: tests, package files, `node_modules` and dotfiles return 404.
+The arena is a fixed 1200 × 600 logical field, identical on every screen and both online devices. Tuning lives in `SETTINGS`, `ARENAS`, `WEAPONS` and `POWERS` at the top of **duel-engine.js**. When the page is hosted without a room server (for example on Vercel), it uses the server address in **duel-config.js**. **render.yaml** sets that server up on Render. `server.cjs` keeps up to 40 rooms. Each room steps its own `Duel` at 120 Hz and sends about 30 updates per second (around 2–3 KB each) over Server-Sent Events. Clients send cumulative press counters, so a delayed or repeated request never replays a move. Each seat is protected by a random token, request bodies are size-limited, and idle rooms close after 60 s. The server only serves game files: tests, package files, `node_modules` and dotfiles return 404.
 
 ## Play
 
