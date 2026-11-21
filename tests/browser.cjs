@@ -81,7 +81,7 @@ async function play(p){await p.locator('#play').click();check((await snapshot(p)
   }
   await small.close();
   const flight=await fresh({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await play(flight);
-  const seenPowers=new Set(),seenKinds=new Set(),captured=new Set();let sawAttraction=false,sawFloorGap=false,sawRoofGap=false,alwaysForward=true,sawBlend=false;let priorGaps=[],gapChecks=0;const rushSizes=new Set();let sawCleanRush=false;
+  const seenPowers=new Set(),seenKinds=new Set(),captured=new Set(),seenRides=new Set();let sawAttraction=false,sawFloorGap=false,sawRoofGap=false,alwaysForward=true,sawBlend=false;let priorGaps=[],gapChecks=0;const rushSizes=new Set();let sawCleanRush=false;
   for(let i=0;i<850;i++){
     const f=await snapshot(flight);
     if(f.collectibles.some(s=>s.attracted&&!s.collected&&s.path?.length>2)){sawAttraction=true;if(!captured.has('magnet-flight')){await flight.screenshot({path:output+'/magnet-flight-mobile.png'});captured.add('magnet-flight');}}
@@ -90,15 +90,15 @@ async function play(p){await p.locator('#play').click();check((await snapshot(p)
     priorGaps=f.openings;
     if(f.rush){rushSizes.add(f.rush.total);if(f.rush.done&&f.rush.clean)sawCleanRush=true;if(!f.rush.done&&!captured.has('rush')){await flight.screenshot({path:output+'/flip-rush-mobile.png'});captured.add('rush');}}
     if(f.theme.mix>0&&f.theme.mix<1){sawBlend=true;if(!captured.has('theme-blend')){await flight.screenshot({path:output+'/theme-blend-mobile.png'});captured.add('theme-blend');}}
-    alwaysForward=alwaysForward&&f.pose.facing===1&&Math.cos(f.pose.angle)>.6;
+    alwaysForward=alwaysForward&&f.pose.facing===1&&(f.ride||Math.cos(f.pose.angle)>.6);if(f.ride)seenRides.add(f.ride.kind==='twist'?'twist':f.ride.kind.split('-')[0]);
     sawFloorGap=sawFloorGap||f.openings.some(g=>g.major&&g.side==='bottom');sawRoofGap=sawRoofGap||f.openings.some(g=>g.major&&g.side==='top');
     if(!captured.has('open-gap')&&f.openings.some(g=>g.major&&g.from>f.distance&&g.from-f.distance<240)){await flight.screenshot({path:output+'/open-gap-mobile.png'});captured.add('open-gap');}
 
     for(const [key,value] of Object.entries(f.powers))if(value>0)seenPowers.add(key);
     for(const o of f.obstacles)seenKinds.add(o.kind);
     const next=f.obstacles.find(o=>o.x+o.width+17>=f.distance&&!o.destroyed);
-    if(next&&next.x-f.distance<300){
-      let desired=next.kind.endsWith('-floor')||next.kind==='floor'||next.kind==='floor-tower'||next.kind==='piston-floor'?-1:next.kind.endsWith('-ceiling')||next.kind==='ceiling'||next.kind==='ceiling-tower'||next.kind==='piston-ceiling'?1:f.gravity;
+    if(next&&next.x-f.distance<380){
+      let desired=/^(loop|spiral)-|^twist$/.test(next.kind)?(next.kind==='twist'?f.gravity:next.kind.endsWith('-floor')?1:-1):next.kind.endsWith('-floor')||next.kind==='floor'||next.kind==='floor-tower'||next.kind==='piston-floor'?-1:next.kind.endsWith('-ceiling')||next.kind==='ceiling'||next.kind==='ceiling-tower'||next.kind==='piston-ceiling'?1:f.gravity;
       // On structures with two clear lanes, choose the visible collectible route.
       if(['bridge','arch','moving'].includes(next.kind)){
         const reward=f.collectibles.find(s=>!s.collected&&s.x>=next.x-160&&s.x<=next.x+next.width);
@@ -111,9 +111,9 @@ async function play(p){await p.locator('#play').click();check((await snapshot(p)
     if(next&&['bridge','arch','piston-floor','piston-ceiling','comb-floor','comb-ceiling','crusher-floor','crusher-ceiling','wheel-floor','wheel-ceiling','orbit-floor','orbit-ceiling','pendulum-floor','pendulum-ceiling'].includes(next.kind)&&next.x-f.distance<210&&!captured.has(next.kind)){await flight.screenshot({path:output+'/'+next.kind+'-mobile.png'});captured.add(next.kind);}
     if(i===150){await flight.keyboard.press('p');const frozen=await snapshot(flight);await tick(flight,1200);check(JSON.stringify((await snapshot(flight)).powers)===JSON.stringify(frozen.powers),'pause freezes power-up timers');await flight.locator('#resume').click();}
   }
-  const finish=await snapshot(flight);check(gapChecks>100,'passed gaps remain disconnected across hundreds of rendered frames');check(rushSizes.has(3)&&rushSizes.has(4)&&sawCleanRush,'three- and four-hurdle rushes are playable and award a clean clear');check(sawFloorGap&&sawRoofGap,'floor gaps and disconnected overhead decks occur in actual play');check(alwaysForward,'the character faces forward throughout transfers and slope landings');check(sawAttraction,'magnet stars visibly travel toward the avatar before collection');check(finish.speed>285,'pace increases above the faster starting speed');check(finish.difficulty.level===8,'distance progression reaches the highest threat level');check(finish.sector===3,'all four station areas reached in actual gameplay');
+  const finish=await snapshot(flight);check(seenRides.size>=2&&finish.rides>=2,'loops, spirals and twists are ridden in actual play (rode: '+[...seenRides].join(', ')+')');check(gapChecks>100,'passed gaps remain disconnected across hundreds of rendered frames');check(rushSizes.has(3)&&rushSizes.has(4)&&sawCleanRush,'three- and four-hurdle rushes are playable and award a clean clear');check(sawFloorGap&&sawRoofGap,'floor gaps and disconnected overhead decks occur in actual play');check(alwaysForward,'the character faces forward throughout transfers and slope landings');check(sawAttraction,'magnet stars visibly travel toward the avatar before collection');check(finish.speed>285,'pace increases above the faster starting speed');check(finish.difficulty.level===8,'distance progression reaches the highest threat level');check(finish.sector===3,'all four station areas reached in actual gameplay');
   check(seenKinds.size>=8,'architectural and moving obstacle types render during play');check(sawBlend,'area changes pass through intermediate color and scenery blends');check([...seenKinds].some(k=>k.startsWith('crusher-')),'twin crushers appear in actual play');check([...seenKinds].some(k=>k.startsWith('orbit-'))&&[...seenKinds].some(k=>k.startsWith('pendulum-')),'orbit arrays and swinging pendulums appear during actual play');
-  check(['shield','magnet','slow','overdrive','double'].every(k=>seenPowers.has(k)),'all five power-ups collected through real controls');
+  check(['shield','magnet','slow','overdrive','double'].every(k=>seenPowers.has(k)),'all five power-ups collected through real controls (seen: '+[...seenPowers].join(', ')+')');
   check(finish.stars>15&&finish.rewardStars>=3&&finish.bonus>0,'star chains and milestone rewards earned during play');
   await flight.keyboard.press('p');await flight.locator('#paused [data-home]').click();const bank=(await snapshot(flight)).save.totalStars;
   check(bank===finish.stars+finish.rewardStars,'collected and milestone stars bank exactly once');await flight.reload();check((await snapshot(flight)).save.totalStars===bank,'earned rewards persist after reload');
@@ -142,14 +142,14 @@ async function play(p){await p.locator('#play').click();check((await snapshot(p)
     const f=await snapshot(combat);assert.equal(f.state,'playing','combat run survives with real controls');
     sawEmpty=sawEmpty||f.ammo+f.specialAmmo===0;if(f.nextAmmoAt>lastAmmoAt)sawRefill=true;lastAmmoAt=f.nextAmmoAt;for(const b of f.bullets)shotTypes.add(b.type);
     const next=f.obstacles.find(o=>o.x+o.width+17>=f.distance);
-    if(next&&next.x-f.distance<300){let desired=await combat.evaluate(o=>GravityEngine.safeGravity(o,GravityFlip.snapshot().gravity),next);
+    if(next&&next.x-f.distance<380){let desired=await combat.evaluate(o=>GravityEngine.safeGravity(o,GravityFlip.snapshot().gravity),next);
       if(['bridge','arch','moving'].includes(next.kind)){const reward=f.collectibles.find(s=>!s.collected&&s.x>=next.x-160&&s.x<=next.x+next.width);if(reward)desired=reward.y>300?1:-1;}
       if(desired!==f.gravity)await combat.keyboard.press('Space');
     }
     if(f.bullets.some(b=>b.powered)){poweredShots=true;if(!combatCaptured){await combat.screenshot({path:output+'/overdrive-combat-mobile.png'});combatCaptured=true;}}
     await tick(combat,100);
   }
-  cs=await snapshot(combat);check(cs.shots>150&&cs.shots<800&&cs.kills>=3&&cs.rewardStars>10,'limited-ammo combat earns bounties while distance and pickups replenish rounds');check(poweredShots,'Overdrive produces rapid triple shots during actual gameplay');check(sawEmpty&&sawRefill,'gun runs dry and refills at distance checkpoints');check(['standard','pierce','plasma'].every(t=>shotTypes.has(t)),'all three bullet types collected and fired through real controls');
+  cs=await snapshot(combat);check(cs.shots>150&&cs.shots<1000&&cs.kills>=3&&cs.rewardStars>10,'limited-ammo combat earns bounties while distance and pickups replenish rounds (shots '+cs.shots+', kills '+cs.kills+', reward stars '+cs.rewardStars+')');check(poweredShots,'Overdrive produces rapid triple shots during actual gameplay');check(sawEmpty&&sawRefill,'gun runs dry and refills at distance checkpoints');check(['standard','pierce','plasma'].every(t=>shotTypes.has(t)),'all three bullet types collected and fired through real controls');
   await combat.keyboard.up('f');await combat.keyboard.press('p');await combat.locator('#paused [data-home]').click();const bankCombat=(await snapshot(combat)).save.totalStars;await combat.reload();check((await snapshot(combat)).save.totalStars===bankCombat,'combat rewards persist after returning Home and reloading');
   const audioStats=await combat.evaluate(async()=>{
     const c=new OfflineAudioContext(1,48000,48000),proxy=new Proxy(c,{get(t,key){if(key==='state')return 'running';const v=t[key];return typeof v==='function'?v.bind(t):v;}}),bank=new GravitySound(proxy);

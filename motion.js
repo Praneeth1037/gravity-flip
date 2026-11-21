@@ -5,6 +5,14 @@
   const TAU=Math.PI*2;
   function createPose(){return {recoil:0,landing:0,angle:0,inversion:1,anchorOffset:0,phase:0,grounded:true,groundBlend:1,facing:1,slope:0,bob:0};}
   function updatePose(pose,run,dt,reduced=false){
+    if(run.ride){
+      // On a loop, spiral or twist the body follows the track: feet on the rail, rolling with the corkscrew.
+      pose.grounded=true;pose.groundBlend=1;pose.facing=1;pose.slope=0;pose.anchorOffset=0;pose.bob=0;
+      pose.angle=run.ride.angle;pose.inversion=run.ride.inversion;
+      pose.landing=reduced?0:pose.landing*Math.exp(-18*dt);pose.recoil=reduced?0:pose.recoil*Math.exp(-24*dt);
+      pose.phase=reduced?0:pose.phase+run.speed*dt/100*TAU;
+      return pose;
+    }
     const bounds=E.boundsAt(run.distance),side=run.gravity===1?'bottom':'top';
     const wasGrounded=pose.grounded;
     pose.grounded=E.hasSurface(run.distance,side,E.surfaceOpenings(run.obstacles))&&run.vy===0&&Math.abs(run.y-bounds[side])<.1;

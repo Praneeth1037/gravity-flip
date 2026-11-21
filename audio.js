@@ -38,6 +38,10 @@
       if(type==='heal'){[392,523,659].forEach((n,i)=>this.note(n,n*1.01,.14,'sine',.045,i*.05));}
       if(type==='countdown'){this.note(660,660,.12,'square',.03);}
       if(type==='fight'){this.note(523,1047,.24,'sawtooth',.03);this.note(80,40,.2,'triangle',.06);}
+      if(type==='ride'){this.note(180,720,.5,'sawtooth',.025);this.note(400,2400,.45,'noise',.03);this.note(90,180,.4,'triangle',.05);}
+      if(type==='ricochet'){if(this.context.currentTime-(this.lastRic||0)<.05)return;this.lastRic=this.context.currentTime;this.note(2400,900,.07,'triangle',.022);this.note(3000,2000,.03,'noise',.02);}
+      if(type==='clang'){this.note(330,300,.22,'triangle',.05);this.note(495,470,.18,'sine',.03);this.note(1200,400,.05,'noise',.03);}
+      if(type==='land'){if(this.context.currentTime-(this.lastLand||0)<.06)return;this.lastLand=this.context.currentTime;this.note(160,70,.05,'noise',.025);}
       if(type==='crash'){this.note(140,25,.28,'triangle',.075);this.note(500,50,.25,'noise',.075);}
     }
     dispose(){for(const voice of this.voices){try{voice.stop();}catch{}}this.voices.clear();this.master.disconnect();this.limiter.disconnect();}
