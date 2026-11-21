@@ -17,6 +17,8 @@ Visit **http://127.0.0.1:5196**. No installation or build step is needed to play
 
 Open **duel.html**, or select **⚔ 2-player Gravity Duel** under *Let’s fly* on the home screen. Two pilots race a curving skyline and fight with gravity itself. Matches are best of three rounds, and every round takes place in a different arena.
 
+**Live:** play at https://gravity-flip-self.vercel.app (duel: https://gravity-flip-self.vercel.app/duel.html). Online rooms run on Render at https://gravity-flip-1.onrender.com, which redeploys on every push to `main`. On the free plan it sleeps after about 15 idle minutes; the duel page wakes it and shows "Waking up the online room server…" for up to a minute.
+
 **Playing together**
 
 - **Same screen:** both players share one keyboard, or one tablet with two touch pads.
